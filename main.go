@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -55,7 +57,7 @@ func main() {
 	if _, err := os.Stat(cachePath); err == nil {
 		fmt.Println("cache is ready do something")
 	} else if errors.Is(err, os.ErrNotExist) {
-		log.Fatal("No cache file found! building dataset.")
+		fmt.Println("No cache file found! building dataset.")
 		err = buildFortuneCache(dataPath)
 		if err != nil {
 			log.Fatal("Still coudln't build cache..", err)
@@ -76,6 +78,31 @@ func main() {
 	// fmt.Printf(f)
 }
 
+func writeCache(fc *fortuneCache) error {
+	cachefile, err := os.Open(fc.path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	buf := new(bytes.Buffer)
+	fmt.Println("writing to buf")
+	err = binary.Write(buf, binary.BigEndian, int8(42))
+	fmt.Println("written to buf")
+	if err != nil {
+		log.Fatal("deadbeef :", err)
+	}
+	fmt.Println("writing to buf")
+	err = binary.Write(buf, binary.BigEndian, fc.fortunes[0])
+	fmt.Println("written to buf")
+	if err != nil {
+		log.Fatal("fc.fortunes", err)
+	}
+	fmt.Println("writing to cachefile")
+	cachefile.Write(buf.Bytes())
+
+	return nil
+}
+
 func buildFortuneCache(fpath string) error {
 	f, err := os.Open(fpath)
 	if err != nil {
@@ -89,8 +116,10 @@ func buildFortuneCache(fpath string) error {
 	tmp_ftn := strings.Builder{}
 	for scanner.Scan() {
 		line := scanner.Text()
-		if line == "%\n" {
+		if line == "%" {
 			pos, err := f.Seek(0, io.SeekCurrent)
+			// TODO - this is not what you think it is...
+			fmt.Printf("fortune term at position: %d", pos)
 			if err != nil {
 				return err
 			}
@@ -98,17 +127,17 @@ func buildFortuneCache(fpath string) error {
 				pos,
 				int32(tmp_ftn.Len()),
 			}
+			fmt.Printf("added fortune %+x - offset=%d, length=%d\n", fe, fe.offset, fe.length)
 			fc.fortunes = append(fc.fortunes, fe)
 		} else {
 			tmp_ftn.WriteString(line)
 		}
 	}
+	fmt.Printf("fc cache %+x\n", fc)
 
-	fbin, err := os.Create(cachePath)
+	err = writeCache(fc)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	defer fbin.Close()
-
 	return nil
 }

@@ -9,11 +9,11 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 )
 
 const (
-	dataPath                   = "/usr/share/fortune/wisdom"
+	// dataPath                   = "/usr/share/fortune/wisdom"
+	dataPath                   = "./fakefortune.txt"
 	cachePath                  = "./unfortunate.cache"
 	delim                      = "%\n"
 	cacheOffsetPath            = 0
@@ -110,27 +110,43 @@ func buildFortuneCache(fpath string) error {
 	}
 	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewReader(f)
 	fc := new(fortuneCache)
 	fc.path = fpath
-	tmp_ftn := strings.Builder{}
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "%" {
+	line, err := scanner.ReadBytes('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmp_ftn := new(bytes.Buffer)
+	ftn_len := int32(0)
+	for len(line) != 0 {
+		if string(line) == "%\n" {
 			pos, err := f.Seek(0, io.SeekCurrent)
 			// TODO - this is not what you think it is...
-			fmt.Printf("fortune term at position: %d", pos)
+			fmt.Printf("fortune term at position: %d\t", pos)
 			if err != nil {
 				return err
 			}
 			fe := fortuneEntry{
 				pos,
-				int32(tmp_ftn.Len()),
+				ftn_len,
 			}
-			fmt.Printf("added fortune %+x - offset=%d, length=%d\n", fe, fe.offset, fe.length)
+			fmt.Printf(
+				"added fortune %+x - offset=%d, length=%d  -> %s\n",
+				fe,
+				fe.offset,
+				fe.length,
+				tmp_ftn.String(),
+			)
 			fc.fortunes = append(fc.fortunes, fe)
+			tmp_ftn.Reset()
 		} else {
-			tmp_ftn.WriteString(line)
+			tmp_ftn.Write(line)
+			ftn_len += int32(len(line))
+		}
+		line, err = scanner.ReadBytes('\n')
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 	fmt.Printf("fc cache %+x\n", fc)

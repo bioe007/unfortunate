@@ -79,21 +79,19 @@ func main() {
 }
 
 func writeCache(fc *fortuneCache) error {
-	cachefile, err := os.Open(fc.path)
+	cachefile, err := os.Create(fc.path)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer cachefile.Close()
 
 	buf := new(bytes.Buffer)
-	fmt.Println("writing to buf")
 	err = binary.Write(buf, binary.BigEndian, int8(42))
-	fmt.Println("written to buf")
 	if err != nil {
 		log.Fatal("deadbeef :", err)
 	}
-	fmt.Println("writing to buf")
+
 	err = binary.Write(buf, binary.BigEndian, fc.fortunes[0])
-	fmt.Println("written to buf")
 	if err != nil {
 		log.Fatal("fc.fortunes", err)
 	}
@@ -110,43 +108,64 @@ func buildFortuneCache(fpath string) error {
 	}
 	defer f.Close()
 
+	// TODO: Reader isn't really much better as it also can't track
+	// the file position in a helpful way. Might as well switch
+	// back to a scanner
 	scanner := bufio.NewReader(f)
+
 	fc := new(fortuneCache)
 	fc.path = fpath
-	line, err := scanner.ReadBytes('\n')
-	if err != nil {
-		log.Fatal(err)
-	}
-	tmp_ftn := new(bytes.Buffer)
-	ftn_len := int32(0)
-	for len(line) != 0 {
+
+	// Have to count bytes read because the buffered reader can't
+	// track the position of what's been read from the buffer only
+	// the actual file pointer which will always be at the bufsize
+	// boundary. see f.Seek(0, io.SeekCurrent))
+	byte_count := int64(0)       // number of bytes read from file
+	ftn_len := int32(0)          // length of current fortune
+	tmp_ftn := new(bytes.Buffer) // debugging
+	for {
+		// We need to know how many bytes into the file for each fortune.
+		line, err := scanner.ReadBytes('\n')
+		if err == io.EOF {
+			// Without a terminator the tail of the file is just considered as comments.
+			break
+		} else if err != nil {
+			log.Fatal(err)
+		}
+		byte_count += int64(len(line)) // increment byte count
+
+		// NOTE: debugging - buffered read doesn't show where e.g. Text() is at
+		// pos, err := f.Seek(0, io.SeekCurrent)
+
 		if string(line) == "%\n" {
-			pos, err := f.Seek(0, io.SeekCurrent)
-			// TODO - this is not what you think it is...
-			fmt.Printf("fortune term at position: %d\t", pos)
+			fmt.Printf("ftn terminated at byte_count: %d\t", byte_count)
 			if err != nil {
 				return err
 			}
+
 			fe := fortuneEntry{
-				pos,
+				// backup location by length of the current fortune
+				byte_count - int64(ftn_len),
 				ftn_len,
 			}
+
+			// debugging
 			fmt.Printf(
-				"added fortune %+x - offset=%d, length=%d  -> %s\n",
+				"added fortune %+x - offset=%d, length=%d  -> %s",
 				fe,
 				fe.offset,
 				fe.length,
 				tmp_ftn.String(),
 			)
 			fc.fortunes = append(fc.fortunes, fe)
+
+			// reset trackers
 			tmp_ftn.Reset()
+			ftn_len = 0
+
 		} else {
-			tmp_ftn.Write(line)
+			tmp_ftn.Write(line) // debugging
 			ftn_len += int32(len(line))
-		}
-		line, err = scanner.ReadBytes('\n')
-		if err != nil {
-			log.Fatal(err)
 		}
 	}
 	fmt.Printf("fc cache %+x\n", fc)

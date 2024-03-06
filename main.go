@@ -79,7 +79,8 @@ func main() {
 }
 
 func writeCache(fc *fortuneCache) error {
-	cachefile, err := os.Create(fc.path)
+	fmt.Println("creating file", cachePath)
+	cachefile, err := os.Create(cachePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,11 +92,13 @@ func writeCache(fc *fortuneCache) error {
 		log.Fatal("deadbeef :", err)
 	}
 
+	fmt.Println("how many entries?", len(fc.fortunes))
+
 	err = binary.Write(buf, binary.BigEndian, fc.fortunes[0])
 	if err != nil {
 		log.Fatal("fc.fortunes", err)
 	}
-	fmt.Println("writing to cachefile")
+	fmt.Println("writing to cachefile", len(buf.Bytes()))
 	cachefile.Write(buf.Bytes())
 
 	return nil

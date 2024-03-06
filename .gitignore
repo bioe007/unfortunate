@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+# ignore binary
+unfortunate
+
+# ignore temp files
+*.cache

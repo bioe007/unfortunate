@@ -64,7 +64,8 @@ func newCacheLayout(fc fortuneCache) cacheLayout {
 
 func main() {
 	if _, err := os.Stat(cachePath); err == nil {
-		fmt.Println("cache is ready do something")
+		fortune_num := rand.Intn(getFortuneCountFromCache())
+		fmt.Println(fortune_num, ":\t", getFortuneByIndex(fortune_num))
 	} else if errors.Is(err, os.ErrNotExist) {
 		fmt.Println("No cache file found! building dataset.")
 		err = buildFortuneCache(dataPath)
@@ -82,16 +83,15 @@ func main() {
 		log.Fatal("can't open cache", err)
 	}
 	defer fcache.Close()
-	fortune_num := rand.Intn(getFortuneCountFromCache())
-	fmt.Println("fortune is: ", getFortuneByIndex(fortune_num))
-	fmt.Println("-----------------------------------------------------")
-	fmt.Println("fortune is: ", getFortuneByIndex(1))
-	fmt.Println("fortune is: ", getFortuneByIndex(2))
-	fmt.Println("fortune is: ", getFortuneByIndex(3))
-	fmt.Println("fortune is: ", getFortuneByIndex(4))
-	fmt.Println("fortune is: ", getFortuneByIndex(5))
-	fmt.Println("fortune is: ", getFortuneByIndex(6))
-	fmt.Println("fortune is: ", getFortuneByIndex(7))
+	// debugging
+	// fmt.Println("-----------------------------------------------------")
+	// fmt.Println("fortune is: ", getFortuneByIndex(1))
+	// fmt.Println("fortune is: ", getFortuneByIndex(2))
+	// fmt.Println("fortune is: ", getFortuneByIndex(3))
+	// fmt.Println("fortune is: ", getFortuneByIndex(4))
+	// fmt.Println("fortune is: ", getFortuneByIndex(5))
+	// fmt.Println("fortune is: ", getFortuneByIndex(6))
+	// fmt.Println("fortune is: ", getFortuneByIndex(7))
 }
 
 func getFortuneByIndex(idx int) string {
@@ -115,7 +115,7 @@ func getFortuneByIndex(idx int) string {
 	defer f.Close()
 
 	// debugging
-	fmt.Printf("fortune num: %d \tidxtocache: %d\toffset: %d\n", idx, idxtocache, filestartidx)
+	// fmt.Printf("fortune num: %d \tidxtocache: %d\toffset: %d\n", idx, idxtocache, filestartidx)
 
 	f.Seek(int64(filestartidx)-2, 0)
 	scanner := bufio.NewScanner(f)
@@ -172,7 +172,7 @@ func getFortuneCountFromCache() int {
 
 	var num_fortunes int64
 	binary.Read(cachefile, binary.LittleEndian, &num_fortunes)
-	fmt.Println("dbug num_fortunes", num_fortunes)
+	// fmt.Println("dbug num_fortunes", num_fortunes) // debugging
 
 	return int(num_fortunes)
 }

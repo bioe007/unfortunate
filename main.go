@@ -8,18 +8,20 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"os"
+	"strings"
 )
 
 const (
 	// dataPath                   = "/usr/share/fortune/wisdom"
-	dataPath                   = "./fakefortune.txt"
-	cachePath                  = "./unfortunate.cache"
-	delim                      = "%\n"
-	cacheOffsetPath            = 0
-	cacheOffsetPathLength      = 5
-	cacheOffsetFortunesEntries = 10
-	cacheOffsetNumFortunes     = 14
+	dataPath                 = "./fakefortune.txt"
+	cachePath                = "./unfortunate.cache"
+	delim                    = "%\n"
+	cacheOffsetNumFortunes   = 0
+	cacheOffsetPathLength    = 4
+	cacheOffsetPath          = 8
+	cacheOffsetFortunesStart = -1 // define this when writing by looking at pathlength
 )
 
 type fortuneEntry struct {
@@ -32,6 +34,7 @@ type fortuneCache struct {
 	fortunes []fortuneEntry
 }
 
+// TODO - this would be a 'fancy' version of the cache
 // fields in binary file layout -
 // 0..4 - int32 location of path name
 // 5..8 - int32 length of path name
@@ -42,14 +45,20 @@ type fortuneCache struct {
 // [] string of pathlen length
 // [] array of fortuneentries
 type cacheLayout struct {
-	pathOffset         int32
-	pathLenOffset      int32
-	fortuneStartOffset int32
 	fortuneCountOffset int32
+	pathLenOffset      int32
+	pathOffset         int32
+	fortuneStartOffset int32
 }
 
-func NewCacheLayout() cacheLayout {
+// TODO - iff fancy version
+// Just a helper to keep file offsets
+func newCacheLayout(fc fortuneCache) cacheLayout {
 	cl := new(cacheLayout)
+	cl.pathOffset = cacheOffsetPath
+	cl.pathLenOffset = cacheOffsetPathLength
+	cl.fortuneCountOffset = cacheOffsetNumFortunes
+	cl.fortuneStartOffset = cacheOffsetPath + int32(len(fc.path))
 	return *cl
 }
 
@@ -65,7 +74,7 @@ func main() {
 		print("try again...")
 		os.Exit(1)
 	} else {
-		log.Fatal("fixme: unhandled erorr checking for cache, exiting.", err)
+		log.Fatal("fixme: unhandled error checking for cache, exiting.", err)
 	}
 
 	fcache, err := os.Open(cachePath)
@@ -73,35 +82,91 @@ func main() {
 		log.Fatal("can't open cache", err)
 	}
 	defer fcache.Close()
-
+	fortune_num := rand.Intn(getFortuneCountFromCache())
+	fmt.Println("fortune num: ", fortune_num)
+	fmt.Println("fortune is: ", getFortuneByIndex(fortune_num))
 	// f := getFortune()
 	// fmt.Printf(f)
 }
 
-func writeCache(fc *fortuneCache) error {
-	fmt.Println("creating file", cachePath)
+func getFortuneByIndex(idx int) string {
+	// TODO - sizeof(struct) in go isn't a thing
+	idxtocache := 8 + idx*(8+4)
+	var filestartidx int64
+	cache, err := os.Open(cachePath)
+	if err != nil {
+		log.Fatal("couldn't open cache file", err)
+	}
+	defer cache.Close()
+
+	cache.Seek(int64(idxtocache), 0)
+	binary.Read(cache, binary.LittleEndian, &filestartidx)
+
+	f, err := os.Open(dataPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	// debugging
+	fmt.Printf("fortune num: %d \toffset: %d\n", idx, filestartidx)
+
+	f.Seek(int64(filestartidx), 0)
+	buf := bufio.NewScanner(f)
+	var s strings.Builder
+	for buf.Scan() {
+		line := buf.Text()
+		if line == "%" {
+			fmt.Println("what i got", s.String())
+			break
+		} else {
+			s.WriteString(line)
+		}
+	}
+
+	return s.String()
+}
+
+func writeCache(fc *fortuneCache) {
+	fmt.Println("creating cache file: ", cachePath) // debugging
 	cachefile, err := os.Create(cachePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer cachefile.Close()
 
-	buf := new(bytes.Buffer)
-	err = binary.Write(buf, binary.BigEndian, int8(42))
+	err = binary.Write(cachefile, binary.LittleEndian, int64(len(fc.fortunes)))
 	if err != nil {
-		log.Fatal("deadbeef :", err)
+		log.Fatal("Failed writing fortune counts: ", err)
 	}
 
-	fmt.Println("how many entries?", len(fc.fortunes))
-
-	err = binary.Write(buf, binary.BigEndian, fc.fortunes[0])
-	if err != nil {
-		log.Fatal("fc.fortunes", err)
+	for i, v := range fc.fortunes {
+		// debugging
+		fmt.Printf(
+			"Writing fortune: index=%d\toffset=%d\tlen=%d\tsize=%d\n",
+			i,
+			v.offset,
+			v.length,
+			binary.Size(v),
+		)
+		err = binary.Write(cachefile, binary.LittleEndian, v)
+		if err != nil {
+			log.Fatal("Failed writing fortune entry: ", fc, "\t", err)
+		}
 	}
-	fmt.Println("writing to cachefile", len(buf.Bytes()))
-	cachefile.Write(buf.Bytes())
+}
 
-	return nil
+func getFortuneCountFromCache() int {
+	cachefile, err := os.Open(cachePath)
+	if errors.Is(err, os.ErrNotExist) {
+		log.Fatal("No cache file at %s", cachePath, err)
+	}
+
+	var num_fortunes int64
+	binary.Read(cachefile, binary.LittleEndian, &num_fortunes)
+	fmt.Println("dbug num_fortunes", num_fortunes)
+
+	return int(num_fortunes)
 }
 
 func buildFortuneCache(fpath string) error {
@@ -173,9 +238,6 @@ func buildFortuneCache(fpath string) error {
 	}
 	fmt.Printf("fc cache %+x\n", fc)
 
-	err = writeCache(fc)
-	if err != nil {
-		return err
-	}
+	writeCache(fc)
 	return nil
 }

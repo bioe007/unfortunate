@@ -83,15 +83,21 @@ func main() {
 	}
 	defer fcache.Close()
 	fortune_num := rand.Intn(getFortuneCountFromCache())
-	fmt.Println("fortune num: ", fortune_num)
 	fmt.Println("fortune is: ", getFortuneByIndex(fortune_num))
-	// f := getFortune()
-	// fmt.Printf(f)
+	fmt.Println("-----------------------------------------------------")
+	fmt.Println("fortune is: ", getFortuneByIndex(1))
+	fmt.Println("fortune is: ", getFortuneByIndex(2))
+	fmt.Println("fortune is: ", getFortuneByIndex(3))
+	fmt.Println("fortune is: ", getFortuneByIndex(4))
+	fmt.Println("fortune is: ", getFortuneByIndex(5))
+	fmt.Println("fortune is: ", getFortuneByIndex(6))
+	fmt.Println("fortune is: ", getFortuneByIndex(7))
 }
 
 func getFortuneByIndex(idx int) string {
 	// TODO - sizeof(struct) in go isn't a thing
-	idxtocache := 8 + idx*(8+4)
+	// skip the num_fortunes value and scale by sizeof(fortuneentry)
+	idxtocache := 8 + (idx-1)*(8+4)
 	var filestartidx int64
 	cache, err := os.Open(cachePath)
 	if err != nil {
@@ -109,18 +115,20 @@ func getFortuneByIndex(idx int) string {
 	defer f.Close()
 
 	// debugging
-	fmt.Printf("fortune num: %d \toffset: %d\n", idx, filestartidx)
+	fmt.Printf("fortune num: %d \tidxtocache: %d\toffset: %d\n", idx, idxtocache, filestartidx)
 
-	f.Seek(int64(filestartidx), 0)
-	buf := bufio.NewScanner(f)
+	f.Seek(int64(filestartidx)-2, 0)
+	scanner := bufio.NewScanner(f)
 	var s strings.Builder
-	for buf.Scan() {
-		line := buf.Text()
+	for scanner.Scan() {
+		line := scanner.Text()
+		// fmt.Println("line", line)
 		if line == "%" {
-			fmt.Println("what i got", s.String())
-			break
+			// fmt.Println("found fortune", s.String(), line)
+			break // fortune terminator TODO - this should be constant
 		} else {
 			s.WriteString(line)
+			s.WriteString("\n")
 		}
 	}
 

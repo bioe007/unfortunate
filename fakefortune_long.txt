@@ -1,13 +1,13 @@
-one
+one____
 %
-two ftn
+two=ftn
 %
-three
-
+three...
+........
    spacey       ...
-
+!!!!!!!!!
 %fortune
-
+########
 %
 four
 %

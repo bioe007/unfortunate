@@ -14,14 +14,9 @@ import (
 )
 
 const (
-	// dataPath                   = "/usr/share/fortune/wisdom"
-	dataPath                 = "./fakefortune.txt"
-	cachePath                = "./unfortunate.cache"
-	delim                    = "%\n"
-	cacheOffsetNumFortunes   = 0
-	cacheOffsetPathLength    = 4
-	cacheOffsetPath          = 8
-	cacheOffsetFortunesStart = -1 // define this when writing by looking at pathlength
+	dataPath  = "./fakefortune.txt"
+	cachePath = "./unfortunate.cache"
+	delim     = "%\n"
 )
 
 type fortuneEntry struct {
@@ -34,40 +29,13 @@ type fortuneCache struct {
 	fortunes []fortuneEntry
 }
 
-// TODO - this would be a 'fancy' version of the cache
-// fields in binary file layout -
-// 0..4 - int32 location of path name
-// 5..8 - int32 length of path name
-// 9 - reserved
-// 10..13 - int32 location of start of fortune entries
-// 14..17 - int32 number of fortune entries
-// +content as described
-// [] string of pathlen length
-// [] array of fortuneentries
-type cacheLayout struct {
-	fortuneCountOffset int32
-	pathLenOffset      int32
-	pathOffset         int32
-	fortuneStartOffset int32
-}
-
-// TODO - iff fancy version
-// Just a helper to keep file offsets
-func newCacheLayout(fc fortuneCache) cacheLayout {
-	cl := new(cacheLayout)
-	cl.pathOffset = cacheOffsetPath
-	cl.pathLenOffset = cacheOffsetPathLength
-	cl.fortuneCountOffset = cacheOffsetNumFortunes
-	cl.fortuneStartOffset = cacheOffsetPath + int32(len(fc.path))
-	return *cl
-}
-
 func main() {
 	if _, err := os.Stat(cachePath); err == nil {
 		fortune_num := rand.Intn(getFortuneCountFromCache())
-		fmt.Println(fortune_num, ":\t", getFortuneByIndex(fortune_num))
+		// fmt.Println(fortune_num, ":\t", getFortuneByIndex(fortune_num))
+		fmt.Println(getFortuneByIndex(fortune_num))
 	} else if errors.Is(err, os.ErrNotExist) {
-		fmt.Println("No cache file found! building dataset.")
+		fmt.Println("No cache file found, building dataset.")
 		err = buildFortuneCache(dataPath)
 		if err != nil {
 			log.Fatal("Still coudln't build cache..", err)
@@ -167,7 +135,7 @@ func writeCache(fc *fortuneCache) {
 func getFortuneCountFromCache() int {
 	cachefile, err := os.Open(cachePath)
 	if errors.Is(err, os.ErrNotExist) {
-		log.Fatal("No cache file at %s", cachePath, err)
+		log.Fatal("No cache file at: ", cachePath, err)
 	}
 
 	var num_fortunes int64

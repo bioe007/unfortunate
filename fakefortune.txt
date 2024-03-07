@@ -1,1 +1,1 @@
-fakefortune_long.txt
+quotes.txt

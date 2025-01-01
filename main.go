@@ -53,6 +53,7 @@ func main() {
 	defer fcache.Close()
 	// debugging
 	// fmt.Println("-----------------------------------------------------")
+	// fmt.Println("Number of fortunes", getFortuneCountFromCache())
 	// fmt.Println("fortune is: ", getFortuneByIndex(1))
 	// fmt.Println("fortune is: ", getFortuneByIndex(2))
 	// fmt.Println("fortune is: ", getFortuneByIndex(3))

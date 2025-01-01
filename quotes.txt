@@ -427,3 +427,42 @@ Wasted.
  is probably just bad."
    --- https://blog.codinghorror.com/coding-without-comments/
 %
+"Fifteen years of imaginary training. Is it any use in real life?"
+    --- OH Dae-Su (Old Boy)
+%
+Cowardice comes from the imagination.
+    --- tooth guy in old boy
+%
+There is no prize to perfection. Only an end to pursuit.
+    --- Victor (Arcane)
+%
+We might die of medication but we sure cured all the pain.
+    --- Bright Eyes (Lua)
+%
+Wolves cull themselves, man. What other creature could? And is the race of man
+not more predacious yet?
+    --- The Judge (Blood Meridian)
+%
+The quest for power is incompatible with the quest for authentic relationship.
+    --- Gary Hamel, Humanocracy
+%
+Perfection is attained not when there is no more to add, but when there is no
+longer anything to take away.
+    --- Antoine de Saint Exupery
+%
+"verum ipsum factum" (we only know what we make)
+    --- Giambattista Vico
+%
+D:I feel sorry for you people that don't drink
+J: Why?
+D: Well, you wake up in the morning and that's as good as you're gonna feel all day.
+    --- Dean Martin
+%
+The fundamental problem of communication is that of reproducing at one point,
+either exactly or approximately, a message selected at another point.
+    --- Claude E. Shannon
+%
+The future is already here, It is just not evenly distributed.
+    --- William Gibson
+%
+
